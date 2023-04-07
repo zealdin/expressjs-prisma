@@ -3,6 +3,9 @@ import express from "express";
 
 const prisma = new PrismaClient();
 
+const CharacterAI = require('node_characterai');
+const characterAI = new CharacterAI();
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -16,6 +19,33 @@ app.get("/todos", async (req, res) => {
   });
 
   res.json(todos);
+});
+
+app.post("/chat", async (req, res) => {
+  const characterId = req.body.characterId
+  const content = req.body.content
+  if (!characterId || !content) {
+    res.status(400).json({
+      message: '参数不正确'
+    })
+    return
+  }
+
+  const authToken = process.env.AUTH_TOKEN
+  if (!authToken) {
+    res.status(400).json({
+      message: '缺少AUTH_TOKEN'
+    })
+    return
+  }
+  await characterAI.authenticateWithToken(authToken);
+
+  const chat = await characterAI.createOrContinueChat(characterId);
+  const response = await chat.sendAndAwaitResponse(content, true)
+  
+  res.send({
+    data: response
+  })
 });
 
 app.post("/todos", async (req, res) => {
